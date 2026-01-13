@@ -1,105 +1,26 @@
 import { NextRequest } from "next/server";
-import { verifyIPN, parseIPNData, isPaymentComplete, COINPAYMENTS_CONFIG } from "@/lib/coinpayments";
+import {
+  verifyWebhookSignature,
+  parseWebhookPayload,
+  isPaymentComplete,
+  verifyIPN,
+  parseIPNData,
+  COINPAYMENTS_CONFIG,
+} from "@/lib/coinpayments";
 import { createSubscription } from "@/lib/subscription";
 import { prisma } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
-    // Get raw body for HMAC verification
     const body = await req.text();
-    const hmac = req.headers.get("hmac") || "";
+    const contentType = req.headers.get("content-type") || "";
 
-    // Verify IPN authenticity
-    const isValid = verifyIPN(
-      COINPAYMENTS_CONFIG.ipnSecret,
-      COINPAYMENTS_CONFIG.merchantId,
-      hmac,
-      body
-    );
-
-    if (!isValid) {
-      console.error("[CoinPayments] Invalid IPN signature");
-      return Response.json({ error: "Invalid signature" }, { status: 400 });
+    // Determine if this is a new API webhook (JSON) or legacy IPN (form-urlencoded)
+    if (contentType.includes("application/json")) {
+      return handleNewWebhook(req, body);
+    } else {
+      return handleLegacyIPN(req, body);
     }
-
-    // Parse IPN data
-    const params = new URLSearchParams(body);
-    const ipnData = parseIPNData(params);
-
-    console.log("[CoinPayments] IPN received:", {
-      txnId: ipnData.txnId,
-      status: ipnData.status,
-      statusText: ipnData.statusText,
-      userId: ipnData.custom,
-    });
-
-    // Check if payment is complete
-    if (isPaymentComplete(ipnData.status)) {
-      const userId = ipnData.custom;
-
-      if (!userId) {
-        console.error("[CoinPayments] No userId in IPN data");
-        return Response.json({ error: "No user ID" }, { status: 400 });
-      }
-
-      // Check if user exists
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-      });
-
-      if (!user) {
-        console.error("[CoinPayments] User not found:", userId);
-        return Response.json({ error: "User not found" }, { status: 404 });
-      }
-
-      // Check if subscription already exists
-      const existingSub = await prisma.subscription.findUnique({
-        where: { userId },
-      });
-
-      if (existingSub) {
-        // Reset quota for existing subscription
-        const now = new Date();
-        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
-
-        await prisma.subscription.update({
-          where: { userId },
-          data: {
-            status: "active",
-            filesRemaining: 10,
-            currentPeriodStart: now,
-            currentPeriodEnd: nextMonth,
-            updatedAt: now,
-          },
-        });
-
-        console.log("[CoinPayments] Subscription renewed for user:", userId);
-      } else {
-        // Create new subscription
-        await createSubscription(
-          userId,
-          ipnData.txnId, // Use transaction ID as customer ID
-          ipnData.txnId  // Use transaction ID as subscription ID
-        );
-
-        console.log("[CoinPayments] New subscription created for user:", userId);
-      }
-
-      // Log the payment
-      await prisma.summary.create({
-        data: {
-          userId,
-          fileName: "Payment",
-          fileSize: 0,
-          style: "subscription",
-          language: "n/a",
-          detailLevel: "n/a",
-          wordCount: 0,
-        },
-      });
-    }
-
-    return Response.json({ success: true });
   } catch (error) {
     console.error("[CoinPayments] Webhook error:", error);
     return Response.json(
@@ -107,4 +28,141 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Handle new CoinPayments API v2 webhooks (JSON format)
+ */
+async function handleNewWebhook(req: NextRequest, body: string) {
+  // Verify signature if configured
+  const signature = req.headers.get("x-coinpayments-signature") || "";
+
+  if (!verifyWebhookSignature(body, signature)) {
+    console.error("[CoinPayments] Invalid webhook signature");
+    return Response.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  const payload = parseWebhookPayload(body);
+
+  console.log("[CoinPayments] Webhook received:", {
+    event: payload.event,
+    invoiceId: payload.invoiceId,
+    status: payload.status,
+    userId: payload.customData?.userId || payload.metadata?.userId,
+  });
+
+  // Check if payment is complete
+  if (isPaymentComplete(payload.status)) {
+    const userId = payload.customData?.userId || payload.metadata?.userId;
+
+    if (!userId) {
+      console.error("[CoinPayments] No userId in webhook data");
+      return Response.json({ error: "No user ID" }, { status: 400 });
+    }
+
+    await processSuccessfulPayment(userId, payload.invoiceId);
+  }
+
+  return Response.json({ success: true });
+}
+
+/**
+ * Handle legacy CoinPayments IPN (form-urlencoded format)
+ */
+async function handleLegacyIPN(req: NextRequest, body: string) {
+  const hmac = req.headers.get("hmac") || "";
+
+  // Verify IPN authenticity
+  const isValid = verifyIPN(
+    COINPAYMENTS_CONFIG.webhookSecret || process.env.COINPAYMENTS_IPN_SECRET || "",
+    COINPAYMENTS_CONFIG.clientId || process.env.COINPAYMENTS_MERCHANT_ID || "",
+    hmac,
+    body
+  );
+
+  if (!isValid) {
+    console.error("[CoinPayments] Invalid IPN signature");
+    return Response.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  const params = new URLSearchParams(body);
+  const ipnData = parseIPNData(params);
+
+  console.log("[CoinPayments] IPN received:", {
+    txnId: ipnData.txnId,
+    status: ipnData.status,
+    statusText: ipnData.statusText,
+    userId: ipnData.custom,
+  });
+
+  // Check if payment is complete (status >= 2 or >= 100)
+  if (ipnData.status >= 2 || ipnData.status >= 100) {
+    const userId = ipnData.custom;
+
+    if (!userId) {
+      console.error("[CoinPayments] No userId in IPN data");
+      return Response.json({ error: "No user ID" }, { status: 400 });
+    }
+
+    await processSuccessfulPayment(userId, ipnData.txnId);
+  }
+
+  return Response.json({ success: true });
+}
+
+/**
+ * Process a successful payment and create/renew subscription
+ */
+async function processSuccessfulPayment(userId: string, transactionId: string) {
+  // Check if user exists
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    console.error("[CoinPayments] User not found:", userId);
+    throw new Error("User not found");
+  }
+
+  // Check if subscription already exists
+  const existingSub = await prisma.subscription.findUnique({
+    where: { userId },
+  });
+
+  const now = new Date();
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+
+  if (existingSub) {
+    // Renew existing subscription
+    await prisma.subscription.update({
+      where: { userId },
+      data: {
+        status: "active",
+        filesRemaining: 10,
+        currentPeriodStart: now,
+        currentPeriodEnd: nextMonth,
+        updatedAt: now,
+      },
+    });
+
+    console.log("[CoinPayments] Subscription renewed for user:", userId);
+  } else {
+    // Create new subscription
+    await createSubscription(userId, transactionId, transactionId);
+
+    console.log("[CoinPayments] New subscription created for user:", userId);
+  }
+
+  // Log the payment as a record
+  await prisma.summary.create({
+    data: {
+      userId,
+      fileName: `Payment: ${transactionId}`,
+      fileSize: 0,
+      style: "payment",
+      language: "n/a",
+      detailLevel: "n/a",
+      wordCount: 0,
+    },
+  });
 }

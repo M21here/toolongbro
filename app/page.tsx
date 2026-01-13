@@ -121,20 +121,23 @@ export default function Home() {
             <div className="flex items-center gap-3">
               {ready && authenticated && user && (
                 <>
-                  <div className="flex items-center gap-2 text-sm">
-                    <User className="w-4 h-4" />
-                    <span>{user.email?.address || user.wallet?.address?.slice(0, 6) + "..."}</span>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={logout}>
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.location.href = '/profile'}
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    {user.email?.address || user.wallet?.address?.slice(0, 6) + "..."}
                   </Button>
                   <Button
-                    variant="default"
+                    variant="outline"
                     size="sm"
                     onClick={() => window.location.href = '/subscription'}
                   >
                     Subscription
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={logout}>
+                    <LogOut className="w-4 h-4" />
                   </Button>
                 </>
               )}

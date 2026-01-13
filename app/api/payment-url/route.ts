@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { verifyPrivyToken } from "@/lib/privy-server";
-import { generatePaymentButtonUrl } from "@/lib/coinpayments";
+import { createInvoice } from "@/lib/coinpayments";
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,16 +10,19 @@ export async function GET(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const paymentUrl = generatePaymentButtonUrl(
+    const { invoiceId, checkoutUrl } = await createInvoice(
       user.userId,
       user.email || "user@privy.io"
     );
 
-    return Response.json({ url: paymentUrl });
+    return Response.json({
+      url: checkoutUrl,
+      invoiceId: invoiceId,
+    });
   } catch (error) {
     console.error("Payment URL generation error:", error);
     return Response.json(
-      { error: "Internal server error" },
+      { error: "Failed to create payment. Please try again." },
       { status: 500 }
     );
   }
