@@ -89,12 +89,10 @@ export async function createInvoice(
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://toolongbro.com";
 
   const invoiceData = {
-    clientId: COINPAYMENTS_CONFIG.clientId,
     invoiceId: `TLB-${userId.slice(0, 8)}-${Date.now()}`,
     amount: {
       currencyId: "5057", // USD
       displayValue: COINPAYMENTS_CONFIG.amount,
-      value: COINPAYMENTS_CONFIG.amount,
     },
     description: COINPAYMENTS_CONFIG.itemName,
     metadata: {
@@ -103,15 +101,13 @@ export async function createInvoice(
       plan: "monthly",
     },
     buyer: {
-      companyName: "",
-      name: {
-        firstName: "",
-        lastName: "",
-      },
       emailAddress: userEmail,
     },
-    customData: JSON.stringify({ userId }),
-    redirectUrl: `${baseUrl}/subscription/success`,
+    customData: {
+      userId: userId,
+    },
+    successUrl: `${baseUrl}/subscription/success`,
+    cancelUrl: `${baseUrl}/subscription`,
     notificationUrl: `${baseUrl}/api/webhooks/coinpayments`,
   };
 
