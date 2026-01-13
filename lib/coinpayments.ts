@@ -13,7 +13,18 @@ export const COINPAYMENTS_CONFIG = {
 };
 
 /**
+ * Generate timestamp in ISO-8601 format without milliseconds
+ * Format: YYYY-MM-DDTHH:mm:ss
+ */
+function getTimestamp(): string {
+  const now = new Date();
+  return now.toISOString().split('.')[0]; // Remove milliseconds
+}
+
+/**
  * Generate HMAC signature for CoinPayments API v2
+ * Format: BOM + METHOD + URL + CLIENT_ID + TIMESTAMP + BODY
+ * Returns Base64 encoded signature
  */
 function generateSignature(
   method: string,
@@ -21,11 +32,13 @@ function generateSignature(
   timestamp: string,
   body: string = ""
 ): string {
-  const signatureString = `${method}${url}${timestamp}${body}`;
+  // BOM character + method + url + clientId + timestamp + body
+  const message = `\ufeff${method}${url}${COINPAYMENTS_CONFIG.clientId}${timestamp}${body}`;
+
   return crypto
     .createHmac("sha256", COINPAYMENTS_CONFIG.clientSecret)
-    .update(signatureString)
-    .digest("hex");
+    .update(message)
+    .digest("base64");
 }
 
 /**
@@ -37,7 +50,7 @@ async function apiRequest(
   body?: object
 ): Promise<any> {
   const url = `${COINPAYMENTS_CONFIG.apiUrl}/api/v1${endpoint}`;
-  const timestamp = new Date().toISOString();
+  const timestamp = getTimestamp();
   const bodyStr = body ? JSON.stringify(body) : "";
 
   const signature = generateSignature(method, url, timestamp, bodyStr);
@@ -48,6 +61,8 @@ async function apiRequest(
     "X-CoinPayments-Timestamp": timestamp,
     "X-CoinPayments-Signature": signature,
   };
+
+  console.log("[CoinPayments] Request:", { method, url, timestamp });
 
   const response = await fetch(url, {
     method,
