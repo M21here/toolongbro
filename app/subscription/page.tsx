@@ -15,7 +15,7 @@ interface SubscriptionData {
 }
 
 // CoinPayments button data - generated from their dashboard
-const COINPAYMENTS_BUTTON_DATA = "HcbYZ3LKlb0xpORPk3fEcYzsnf/FlJqJ4zpQMIjv8u7tqm5q08/cpvt7VDIz/p5xPLXXw3dRU82X7xczXXVPkw15D3MiaEQIYSAysiZkdDQoghkLqt3pjnpv3cR4U3QKfRGWf5ULTnDMGScjSU+/LdN/AXNQwawO28WWF/M5QKNbXohu0JjvaRu/mqWSCMyYJhQM9fZL4wGmsncxluERC+WSK/dz0EnRFOaTnDLO/ih8oRIQ2QWbT/v3Zo1EpMxDUH3UmEbzt0+FRZexkJXZkTqseMj3j9VFo3lBVQpOpORYQ0yG/py+QX8efQz12WpqJ9Lrx9VUy4htDAdE++q7mb7IZdZAOeoiOVKaGhBDWZnMxWst9IoBMyVI1HKzmt1Jwza/HoTamykwFjnx4DdL2C9qxaEr8o1yi2MRlaie1Mf9r716bjX3fJaMByi6Emt2RxQq971lH1ue8zOosEIjXdX+psC3CtYNwgOr9hv8cbROEqMbYoBCIsUok0hSDcoPc1PUu/ZV32t4HaplxXY5qqW/1s7u937emzTYJYsERpzfAnJyi++m1EXt7i7EwRYT372tqSrSGHLDV/xBMr3o7eKpq8UMhSsh5WNP1lrnwbBb9qSHkcJOUzJZyfSxTtFoc2i5TMSHDCkgHZ9FQLwUfAD4FxlnV8FPnORJC+b6K1FzNqLMJ6tAbSoY5GNgMn26xT0XZ0HnNmEXtSmfquwt+nFonacTxX57WTa6obmsw0YC0cUUXAUofVryKJMDsPY562yBOUXDAFiUdIHgWeKuMCqCP6UBfAKete9guC5y4cIxvOF2yFgH02hJx7KeAfMHGnJ3AtMjao/GOfMBC+kbQVLODkwaNy12Sqb0F4kRTTJrv7LmrBaaZlcXUP1owyrUWnf5x3mE5vyHlRyeDX3ejFEE32uEe4GdsSQVWz1GAgAhWwjxrtK8sNi8DkErbueNq888Bi8G89oSsYYZg+VHpAIdvmsD55F6Fmn6JlbbGqHRFzTKEKPVTeXr/L7dlXG6kUfcZ1/bqT5rJeDoml2vPVOGonqh/bR+n06ApUuGG/GX+UlR0AJ3sXoBjvwUorL93ht+jm8SdjltlirOEM3LtFtI+wXTlQgmA3ol9nmAmnvmKLvSkIqO88NbV+KELbvbVMz07DKytrfL6zl1jiNUKcPklJuMUgrlco+O5AJHPO/8IJR3s6cfeXaMF0HLC4ngE8AAaPG3vTLWDamfEJxOh5R+jCjMMCPZFxEECkiYMB19CfxrRApomLShqVLCKHU42eCRSDL/wOM/8B2AJhnV0AJm75PH25YXuUkVwvLJ9W3LMTif7X+LCNKzoUjLqGTukc6cGkiZLURTQCBX6QT4idA8KrteJywnbEhkI0/WvRZy2TSMT6/nuJ7S4Du3dwqgpWHCmDzIOKEozHxzJn3b4Ut7pUmz49fXF0N7L5YrNs5ZCWRNyVPQ7vmu4tkc+/7x";
+const COINPAYMENTS_BUTTON_DATA = "HcbYZ3LKlb0xpORPk3fEcYzsnf/FlJqJ4zpQMIjv8u7tqm5q08/cpvt7VDIz/p5xPLXXw3dRU82X7xczXXVPkw15D3MiaEQIYSAysiZkdDQoghkLqt3pjnpv3cR4U3QKmWu8PK3CMrsTXPrNnS4YYvbWlb4PbDc3bTRtsGcXrnHkrF+VmZyDYWyKPxmvE9m5kTSnfoQoHwPFZDQmhADgfQ+mX01pgTE1apjLidmMLOjRg+VJE/V6G8xfETs3VcvN8iZhrQzmay4BAME0Rt9IIyRUCUQRNqepJN5OQQbYccO/zV2kfgT6H30TWGJedV0S1pGj8Xj0YGFE1BUILR2qnRjM6ZcOW8XYMbI7+liAClcMttwLXRZp1AojUVRK0M/ptlvpg0+qjtLDV+7/T5WLnNHusLD2pcSBSmVVML0KvnURtr/8T1NfrkyP6i+/fY7T2VyxqhMbv08SFIOXT9ObzuXWS/9irhKDki9oFmJhnsq4s0V6nrex2Ubv2tq6/7ugJd7oNnPsM8n3/66WRVlkQbf9oWV3vc+Xz22Gq6Kv43qcRJJ090sw8PEgsKsirvqdr6EW+pVWkhQxw9k//imF/2DdpsJSMHSF/JvsyHV7y5U5V3SdvRm/bDChUsqW8kpZGo6Z3Teii8irwGw+1hmlDJTsLLY4C/cXw8GDQtq1Antlt2xOpIdNJ35tYn6ra/mK2qnRUSm75pJK4O8/Yp9oI2kOYSgczJ/m2jAHPTBaJdxTfd8HM+UlPF8CswCrHaCW2LylYIggUrzqCbPpT8E923Z75jFdJyCNWtsBE5X+wH1CnXY4uZxEtK8FfTCzG5/+9AkmCqgZFg29TZxs7gBzO5RsUo+p9vptjSeRZndlLIcUeZSQZTx+/Ulk5rtAzFQbQmpBm2YTeqZLdfkXTx3hOhAu0MX+ABj8XpfrsrBJP88OyjzEFZZsmDBQDoPZUf3R8WZ4kLQtF9ZHr67Z4ja1rJwF5xhwAS5uYiGW2ZhExdUDfaaERG2D8UyeLe8ibp0WcGPB7Yn1NaIS/bMxkS2H7ONFzCNvHw5oFXlhrTcD57/yDBiTcwXGzy8fdbKTiVswxKIIDZ/rJC3QeSD22UgD2oFVNIEund6dwGtITLj8V+NUm/XUc02MBHXbCoNZ90Ndlo8bcTf/tWb69Y/k9HhR17EWRnfiD9dewJWut2dXQXNc4Ev9Ew60JnyV2VaJLjqShbrQ8ie20r41xhOeEJdz0yuDK89coe/SPXadvtIlM2u+vIiHCm/QsGjyKbo+I857PsDeuQxmb+E9gG3X4s8kCEvfo09ceMHqOFJSg338RQrobsVjm64cjZ+w6i3eBmcOgsi1F31uqkEy2B9Tjcq91mTe3PAKoQ1xQ+xxijbzAJELS5TXz1FLECdeqhESC9oDrmnI39BJRvJKd0ovNC49isQorSlatyBsSE1zk4iB5bqJ6FhCOUAvGkdCqPmCwGMj+WM5fdbomPYQkVILr0XLlDUsxKVRrbDB5HvGZ+I4G5nNJoVWabHXXOrmwJwSRpjYysqSU9ZaIWfVVAsBtSKKrFyQvIlu8wYDrpNCuro5MN0=";
 
 export default function SubscriptionPage() {
   const { ready, authenticated, user, login } = usePrivy();
@@ -169,9 +169,9 @@ export default function SubscriptionPage() {
                     <input type="hidden" name="data" value={COINPAYMENTS_BUTTON_DATA} />
                     <input
                       type="image"
-                      src="https://a-api.coinpayments.net/checkout_buttons/pay_black_small.svg"
+                      src="https://a-api.coinpayments.net/checkout_buttons/pay_white_small.svg"
                       name="submit"
-                      style={{ width: "252px", cursor: "pointer" }}
+                      style={{ width: "210px", cursor: "pointer" }}
                       alt="Pay with CoinPayments"
                     />
                   </form>
