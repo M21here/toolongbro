@@ -26,7 +26,7 @@ export async function summarizeChunk(
   const response = await client.generateText(
     [{ role: "user", content: prompt }],
     {
-      maxTokens: 4096,
+      maxTokens: 2048,
       temperature: 0.7,
     }
   );
@@ -150,81 +150,94 @@ export async function generateExtras(
   } = {};
 
   const fullText = summaries.map((s) => s.content).join("\n\n");
+  const textSlice = fullText.slice(0, 8000);
+
+  // Build all promises to run in parallel
+  const promises: Promise<void>[] = [];
 
   if (options.style === "study-notes" || options.style === "full-context") {
-    // Generate glossary
-    const glossaryPrompt = `Based on the following text, extract key terms and their definitions. Return ONLY a JSON array in this format:
+    const glossaryPromise = (async () => {
+      const glossaryPrompt = `Based on the following text, extract key terms and their definitions. Return ONLY a JSON array in this format:
 [{"term": "term name", "definition": "clear definition"}]
 
 Text:
-${fullText.slice(0, 8000)}
+${textSlice}
 
 Return ONLY valid JSON, no additional text.`;
 
-    try {
-      const response = await client.generateText(
-        [{ role: "user", content: glossaryPrompt }],
-        { maxTokens: 2048 }
-      );
+      try {
+        const response = await client.generateText(
+          [{ role: "user", content: glossaryPrompt }],
+          { maxTokens: 1024 }
+        );
 
-      const glossary = JSON.parse(response.text.trim());
-      if (Array.isArray(glossary)) {
-        extras.glossary = glossary;
+        const glossary = JSON.parse(response.text.trim());
+        if (Array.isArray(glossary)) {
+          extras.glossary = glossary;
+        }
+      } catch (error) {
+        console.error("Failed to generate glossary:", error);
       }
-    } catch (error) {
-      console.error("Failed to generate glossary:", error);
-    }
+    })();
+    promises.push(glossaryPromise);
   }
 
   if (options.style === "flashcards") {
-    // Generate flashcards
-    const flashcardsPrompt = `Based on the following text, create flashcard Q&A pairs for key concepts. Return ONLY a JSON array in this format:
+    const flashcardsPromise = (async () => {
+      const flashcardsPrompt = `Based on the following text, create flashcard Q&A pairs for key concepts. Return ONLY a JSON array in this format:
 [{"question": "question text", "answer": "answer text"}]
 
 Text:
-${fullText.slice(0, 8000)}
+${textSlice}
 
 Return ONLY valid JSON, no additional text.`;
 
-    try {
-      const response = await client.generateText(
-        [{ role: "user", content: flashcardsPrompt }],
-        { maxTokens: 2048 }
-      );
+      try {
+        const response = await client.generateText(
+          [{ role: "user", content: flashcardsPrompt }],
+          { maxTokens: 1024 }
+        );
 
-      const flashcards = JSON.parse(response.text.trim());
-      if (Array.isArray(flashcards)) {
-        extras.flashcards = flashcards;
+        const flashcards = JSON.parse(response.text.trim());
+        if (Array.isArray(flashcards)) {
+          extras.flashcards = flashcards;
+        }
+      } catch (error) {
+        console.error("Failed to generate flashcards:", error);
       }
-    } catch (error) {
-      console.error("Failed to generate flashcards:", error);
-    }
+    })();
+    promises.push(flashcardsPromise);
   }
 
   if (options.style === "actionable-takeaways") {
-    // Generate takeaways
-    const takeawaysPrompt = `Based on the following text, extract actionable takeaways organized by category. Return ONLY a JSON array in this format:
+    const takeawaysPromise = (async () => {
+      const takeawaysPrompt = `Based on the following text, extract actionable takeaways organized by category. Return ONLY a JSON array in this format:
 [{"category": "category name", "items": ["item 1", "item 2"]}]
 
 Text:
-${fullText.slice(0, 8000)}
+${textSlice}
 
 Return ONLY valid JSON, no additional text.`;
 
-    try {
-      const response = await client.generateText(
-        [{ role: "user", content: takeawaysPrompt }],
-        { maxTokens: 2048 }
-      );
+      try {
+        const response = await client.generateText(
+          [{ role: "user", content: takeawaysPrompt }],
+          { maxTokens: 1024 }
+        );
 
-      const takeaways = JSON.parse(response.text.trim());
-      if (Array.isArray(takeaways)) {
-        extras.takeaways = takeaways;
+        const takeaways = JSON.parse(response.text.trim());
+        if (Array.isArray(takeaways)) {
+          extras.takeaways = takeaways;
+        }
+      } catch (error) {
+        console.error("Failed to generate takeaways:", error);
       }
-    } catch (error) {
-      console.error("Failed to generate takeaways:", error);
-    }
+    })();
+    promises.push(takeawaysPromise);
   }
+
+  // Run all extra generation in parallel
+  await Promise.all(promises);
 
   return extras;
 }

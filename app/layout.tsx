@@ -6,9 +6,13 @@ import { Providers } from "@/components/providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ContextSummarizer - AI-Powered Document Summarization",
+  title: "Too Long Bro - Books are long. We're not",
   description:
-    "Generate high-quality summaries from PDFs, DOCX, and TXT files in various formats and styles.",
+    "Generate high-quality summaries from PDFs, DOCX, and TXT files. Read more, spend less.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

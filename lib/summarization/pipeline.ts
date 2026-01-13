@@ -17,8 +17,8 @@ export interface PipelineProgress {
 
 export type ProgressCallback = (progress: PipelineProgress) => void;
 
-// Process chunks in parallel batches for speed
-const PARALLEL_BATCH_SIZE = 3;
+// Process chunks in parallel batches for speed - increased for faster processing
+const PARALLEL_BATCH_SIZE = 5;
 
 async function processChunksInParallel<T, R>(
   items: T[],
