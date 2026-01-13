@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fefefe;
+  --foreground: #212121;
+  --card: #ffffff;
+  --card-foreground: #212121;
+  --popover: #ffffff;
+  --popover-foreground: #212121;
+  --primary: #f78737;
+  --primary-foreground: #ffffff;
+  --secondary: #fff3eb;
+  --secondary-foreground: #212121;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --accent: #fff3eb;
+  --accent-foreground: #212121;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #f78737;
+  --radius: 0.5rem;
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Button styles */
+.bg-primary {
+  background-color: var(--primary) !important;
+}
+
+.text-primary-foreground {
+  color: var(--primary-foreground) !important;
+}
+
+.text-primary {
+  color: var(--primary) !important;
+}
+
+.bg-secondary {
+  background-color: var(--secondary) !important;
+}
+
+.text-secondary-foreground {
+  color: var(--secondary-foreground) !important;
+}
+
+.bg-destructive {
+  background-color: var(--destructive) !important;
+}
+
+.text-destructive-foreground {
+  color: var(--destructive-foreground) !important;
+}
+
+.bg-accent {
+  background-color: var(--accent) !important;
+}
+
+.text-accent-foreground {
+  color: var(--accent-foreground) !important;
+}
+
+.bg-muted {
+  background-color: var(--muted) !important;
+}
+
+.text-muted-foreground {
+  color: var(--muted-foreground) !important;
+}
+
+.bg-card {
+  background-color: var(--card) !important;
+}
+
+.text-card-foreground {
+  color: var(--card-foreground) !important;
+}
+
+.bg-background {
+  background-color: var(--background) !important;
+}
+
+.text-foreground {
+  color: var(--foreground) !important;
+}
+
+.border-input {
+  border-color: var(--input) !important;
+}
+
+.ring-ring {
+  --tw-ring-color: var(--ring) !important;
+}
+
+.hover\:bg-primary\/90:hover {
+  background-color: color-mix(in srgb, var(--primary) 90%, transparent) !important;
+}
+
+.hover\:bg-secondary\/80:hover {
+  background-color: color-mix(in srgb, var(--secondary) 80%, transparent) !important;
+}
+
+.hover\:bg-destructive\/90:hover {
+  background-color: color-mix(in srgb, var(--destructive) 90%, transparent) !important;
+}
+
+.hover\:bg-accent:hover {
+  background-color: var(--accent) !important;
+}
+
+.hover\:text-accent-foreground:hover {
+  color: var(--accent-foreground) !important;
+}
