@@ -12,50 +12,56 @@ export const COINPAYMENTS_CONFIG = {
   itemNumber: "MONTHLY_SUB",
 };
 
-interface TokenResponse {
-  accessToken: string;
-  expiresIn: number;
+/**
+ * Generate HMAC signature for CoinPayments API v2
+ */
+function generateSignature(
+  method: string,
+  url: string,
+  timestamp: string,
+  body: string = ""
+): string {
+  const signatureString = `${method}${url}${timestamp}${body}`;
+  return crypto
+    .createHmac("sha256", COINPAYMENTS_CONFIG.clientSecret)
+    .update(signatureString)
+    .digest("hex");
 }
 
-// Token cache
-let cachedToken: { token: string; expiresAt: number } | null = null;
-
 /**
- * Get OAuth2 access token from CoinPayments API
+ * Make authenticated request to CoinPayments API v2
  */
-async function getAccessToken(): Promise<string> {
-  // Return cached token if still valid
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 60000) {
-    return cachedToken.token;
-  }
+async function apiRequest(
+  method: string,
+  endpoint: string,
+  body?: object
+): Promise<any> {
+  const url = `${COINPAYMENTS_CONFIG.apiUrl}/api/v1${endpoint}`;
+  const timestamp = new Date().toISOString();
+  const bodyStr = body ? JSON.stringify(body) : "";
 
-  const credentials = Buffer.from(
-    `${COINPAYMENTS_CONFIG.clientId}:${COINPAYMENTS_CONFIG.clientSecret}`
-  ).toString("base64");
+  const signature = generateSignature(method, url, timestamp, bodyStr);
 
-  const response = await fetch(`${COINPAYMENTS_CONFIG.apiUrl}/api/v1/oauth/token`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Basic ${credentials}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: "grant_type=client_credentials",
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "X-CoinPayments-Client": COINPAYMENTS_CONFIG.clientId,
+    "X-CoinPayments-Timestamp": timestamp,
+    "X-CoinPayments-Signature": signature,
+  };
+
+  const response = await fetch(url, {
+    method,
+    headers,
+    body: body ? bodyStr : undefined,
   });
 
   if (!response.ok) {
     const error = await response.text();
-    console.error("[CoinPayments] Token error:", error);
-    throw new Error(`Failed to get access token: ${response.status}`);
+    console.error(`[CoinPayments] API error (${response.status}):`, error);
+    throw new Error(`CoinPayments API error: ${response.status}`);
   }
 
-  const data = await response.json();
-
-  cachedToken = {
-    token: data.access_token,
-    expiresAt: Date.now() + (data.expires_in * 1000),
-  };
-
-  return cachedToken.token;
+  return response.json();
 }
 
 /**
@@ -65,18 +71,16 @@ export async function createInvoice(
   userId: string,
   userEmail: string
 ): Promise<{ invoiceId: string; checkoutUrl: string }> {
-  const accessToken = await getAccessToken();
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://toolongbro.com";
 
   const invoiceData = {
-    currency: {
-      currencyId: 5057, // USD
-    },
+    clientId: COINPAYMENTS_CONFIG.clientId,
+    invoiceId: `TLB-${userId.slice(0, 8)}-${Date.now()}`,
     amount: {
+      currencyId: "5057", // USD
+      displayValue: COINPAYMENTS_CONFIG.amount,
       value: COINPAYMENTS_CONFIG.amount,
     },
-    clientId: COINPAYMENTS_CONFIG.clientId,
-    invoiceId: `TLB-${userId}-${Date.now()}`,
     description: COINPAYMENTS_CONFIG.itemName,
     metadata: {
       userId: userId,
@@ -84,37 +88,29 @@ export async function createInvoice(
       plan: "monthly",
     },
     buyer: {
-      email: userEmail,
+      companyName: "",
+      name: {
+        firstName: "",
+        lastName: "",
+      },
+      emailAddress: userEmail,
     },
-    customData: {
-      userId: userId,
-    },
-    successUrl: `${baseUrl}/subscription/success`,
-    cancelUrl: `${baseUrl}/subscription`,
-    ipnUrl: `${baseUrl}/api/webhooks/coinpayments`,
+    customData: JSON.stringify({ userId }),
+    redirectUrl: `${baseUrl}/subscription/success`,
+    notificationUrl: `${baseUrl}/api/webhooks/coinpayments`,
   };
 
-  const response = await fetch(`${COINPAYMENTS_CONFIG.apiUrl}/api/v1/invoices`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(invoiceData),
-  });
+  try {
+    const data = await apiRequest("POST", "/merchant/invoices", invoiceData);
 
-  if (!response.ok) {
-    const error = await response.text();
-    console.error("[CoinPayments] Invoice creation error:", error);
-    throw new Error(`Failed to create invoice: ${response.status}`);
+    return {
+      invoiceId: data.invoiceId || data.id,
+      checkoutUrl: data.checkoutUrl || data.invoices?.[0]?.checkoutLink || `https://checkout.coinpayments.net/${data.id}`,
+    };
+  } catch (error) {
+    console.error("[CoinPayments] Invoice creation failed:", error);
+    throw error;
   }
-
-  const data = await response.json();
-
-  return {
-    invoiceId: data.id || data.invoiceId,
-    checkoutUrl: data.checkoutLink || data.invoiceUrl || `https://checkout.coinpayments.net/invoice/${data.id}`,
-  };
 }
 
 /**
@@ -126,29 +122,19 @@ export async function getInvoiceStatus(invoiceId: string): Promise<{
   amount: string;
   currency: string;
 }> {
-  const accessToken = await getAccessToken();
+  try {
+    const data = await apiRequest("GET", `/merchant/invoices/${invoiceId}`);
 
-  const response = await fetch(
-    `${COINPAYMENTS_CONFIG.apiUrl}/api/v1/invoices/${invoiceId}`,
-    {
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-      },
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to get invoice status: ${response.status}`);
+    return {
+      status: data.status,
+      paid: data.status === "Completed" || data.status === "Paid",
+      amount: data.amount?.displayValue || "0",
+      currency: data.amount?.currencyId || "USD",
+    };
+  } catch (error) {
+    console.error("[CoinPayments] Get invoice status failed:", error);
+    throw error;
   }
-
-  const data = await response.json();
-
-  return {
-    status: data.status,
-    paid: data.status === "Completed" || data.status === "Paid",
-    amount: data.amount?.value || "0",
-    currency: data.currency?.symbol || "USD",
-  };
 }
 
 /**
@@ -156,22 +142,35 @@ export async function getInvoiceStatus(invoiceId: string): Promise<{
  */
 export function verifyWebhookSignature(
   payload: string,
-  signature: string
+  signature: string,
+  timestamp: string,
+  clientId: string
 ): boolean {
-  if (!COINPAYMENTS_CONFIG.webhookSecret) {
-    console.warn("[CoinPayments] No webhook secret configured, skipping verification");
+  if (!COINPAYMENTS_CONFIG.clientSecret) {
+    console.warn("[CoinPayments] No client secret configured");
     return true;
   }
 
-  const hmac = crypto
-    .createHmac("sha256", COINPAYMENTS_CONFIG.webhookSecret)
-    .update(payload)
+  // Verify client ID matches
+  if (clientId !== COINPAYMENTS_CONFIG.clientId) {
+    console.error("[CoinPayments] Client ID mismatch");
+    return false;
+  }
+
+  // Generate expected signature
+  const expectedSignature = crypto
+    .createHmac("sha256", COINPAYMENTS_CONFIG.clientSecret)
+    .update(`POST${timestamp}${payload}`)
     .digest("hex");
 
-  return crypto.timingSafeEqual(
-    Buffer.from(hmac),
-    Buffer.from(signature)
-  );
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(expectedSignature),
+      Buffer.from(signature)
+    );
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -183,9 +182,7 @@ export interface WebhookPayload {
   status: string;
   amount: string;
   currency: string;
-  customData?: {
-    userId?: string;
-  };
+  customData?: string;
   metadata?: {
     userId?: string;
     email?: string;
@@ -195,14 +192,26 @@ export interface WebhookPayload {
 export function parseWebhookPayload(body: string): WebhookPayload {
   const data = JSON.parse(body);
 
+  let customData: any = {};
+  try {
+    if (data.customData) {
+      customData = JSON.parse(data.customData);
+    }
+  } catch {
+    customData = {};
+  }
+
   return {
-    event: data.event || data.type,
+    event: data.event || data.type || "invoice.completed",
     invoiceId: data.invoiceId || data.invoice?.id || data.id,
-    status: data.status || data.invoice?.status,
-    amount: data.amount?.value || data.invoice?.amount?.value || "0",
-    currency: data.currency?.symbol || data.invoice?.currency?.symbol || "USD",
-    customData: data.customData || data.invoice?.customData,
-    metadata: data.metadata || data.invoice?.metadata,
+    status: data.status || data.invoice?.status || "",
+    amount: data.amount?.displayValue || data.invoice?.amount?.displayValue || "0",
+    currency: data.amount?.currencyId || "USD",
+    customData: data.customData,
+    metadata: {
+      userId: customData.userId || data.metadata?.userId,
+      email: data.buyer?.emailAddress || data.metadata?.email,
+    },
   };
 }
 
@@ -210,22 +219,13 @@ export function parseWebhookPayload(body: string): WebhookPayload {
  * Check if payment/invoice is complete
  */
 export function isPaymentComplete(status: string): boolean {
-  const completedStatuses = ["Completed", "Paid", "Complete", "confirmed"];
+  const completedStatuses = ["Completed", "Paid", "Complete", "confirmed", "Confirmed"];
   return completedStatuses.some(s =>
-    status.toLowerCase().includes(s.toLowerCase())
+    status.toLowerCase() === s.toLowerCase()
   );
 }
 
-// Legacy support - keep old function for backward compatibility
-export function generatePaymentButtonUrl(
-  userId: string,
-  userEmail: string
-): string {
-  // Return empty - we now use createInvoice for API-based payments
-  return "";
-}
-
-// Legacy IPN types for backward compatibility
+// Legacy IPN support for backward compatibility
 export interface IPNData {
   txnId: string;
   status: number;

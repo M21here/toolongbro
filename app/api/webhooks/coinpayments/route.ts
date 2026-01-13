@@ -34,10 +34,12 @@ export async function POST(req: NextRequest) {
  * Handle new CoinPayments API v2 webhooks (JSON format)
  */
 async function handleNewWebhook(req: NextRequest, body: string) {
-  // Verify signature if configured
   const signature = req.headers.get("x-coinpayments-signature") || "";
+  const timestamp = req.headers.get("x-coinpayments-timestamp") || "";
+  const clientId = req.headers.get("x-coinpayments-client") || "";
 
-  if (!verifyWebhookSignature(body, signature)) {
+  // Verify signature
+  if (!verifyWebhookSignature(body, signature, timestamp, clientId)) {
     console.error("[CoinPayments] Invalid webhook signature");
     return Response.json({ error: "Invalid signature" }, { status: 400 });
   }
@@ -48,12 +50,12 @@ async function handleNewWebhook(req: NextRequest, body: string) {
     event: payload.event,
     invoiceId: payload.invoiceId,
     status: payload.status,
-    userId: payload.customData?.userId || payload.metadata?.userId,
+    userId: payload.metadata?.userId,
   });
 
   // Check if payment is complete
   if (isPaymentComplete(payload.status)) {
-    const userId = payload.customData?.userId || payload.metadata?.userId;
+    const userId = payload.metadata?.userId;
 
     if (!userId) {
       console.error("[CoinPayments] No userId in webhook data");
@@ -72,10 +74,9 @@ async function handleNewWebhook(req: NextRequest, body: string) {
 async function handleLegacyIPN(req: NextRequest, body: string) {
   const hmac = req.headers.get("hmac") || "";
 
-  // Verify IPN authenticity
   const isValid = verifyIPN(
-    COINPAYMENTS_CONFIG.webhookSecret || process.env.COINPAYMENTS_IPN_SECRET || "",
-    COINPAYMENTS_CONFIG.clientId || process.env.COINPAYMENTS_MERCHANT_ID || "",
+    process.env.COINPAYMENTS_IPN_SECRET || COINPAYMENTS_CONFIG.clientSecret,
+    process.env.COINPAYMENTS_MERCHANT_ID || COINPAYMENTS_CONFIG.clientId,
     hmac,
     body
   );
