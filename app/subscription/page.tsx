@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
 interface SubscriptionData {
   status: string;
@@ -14,12 +14,13 @@ interface SubscriptionData {
   currentPeriodEnd: string;
 }
 
+// CoinPayments button data - generated from their dashboard
+const COINPAYMENTS_BUTTON_DATA = "HcbYZ3LKlb0xpORPk3fEcYzsnf/FlJqJ4zpQMIjv8u7tqm5q08/cpvt7VDIz/p5xPLXXw3dRU82X7xczXXVPkw15D3MiaEQIYSAysiZkdDQoghkLqt3pjnpv3cR4U3QKfRGWf5ULTnDMGScjSU+/LdN/AXNQwawO28WWF/M5QKNbXohu0JjvaRu/mqWSCMyYJhQM9fZL4wGmsncxluERC+WSK/dz0EnRFOaTnDLO/ih8oRIQ2QWbT/v3Zo1EpMxDUH3UmEbzt0+FRZexkJXZkTqseMj3j9VFo3lBVQpOpORYQ0yG/py+QX8efQz12WpqJ9Lrx9VUy4htDAdE++q7mb7IZdZAOeoiOVKaGhBDWZnMxWst9IoBMyVI1HKzmt1Jwza/HoTamykwFjnx4DdL2C9qxaEr8o1yi2MRlaie1Mf9r716bjX3fJaMByi6Emt2RxQq971lH1ue8zOosEIjXdX+psC3CtYNwgOr9hv8cbROEqMbYoBCIsUok0hSDcoPc1PUu/ZV32t4HaplxXY5qqW/1s7u937emzTYJYsERpzfAnJyi++m1EXt7i7EwRYT372tqSrSGHLDV/xBMr3o7eKpq8UMhSsh5WNP1lrnwbBb9qSHkcJOUzJZyfSxTtFoc2i5TMSHDCkgHZ9FQLwUfAD4FxlnV8FPnORJC+b6K1FzNqLMJ6tAbSoY5GNgMn26xT0XZ0HnNmEXtSmfquwt+nFonacTxX57WTa6obmsw0YC0cUUXAUofVryKJMDsPY562yBOUXDAFiUdIHgWeKuMCqCP6UBfAKete9guC5y4cIxvOF2yFgH02hJx7KeAfMHGnJ3AtMjao/GOfMBC+kbQVLODkwaNy12Sqb0F4kRTTJrv7LmrBaaZlcXUP1owyrUWnf5x3mE5vyHlRyeDX3ejFEE32uEe4GdsSQVWz1GAgAhWwjxrtK8sNi8DkErbueNq888Bi8G89oSsYYZg+VHpAIdvmsD55F6Fmn6JlbbGqHRFzTKEKPVTeXr/L7dlXG6kUfcZ1/bqT5rJeDoml2vPVOGonqh/bR+n06ApUuGG/GX+UlR0AJ3sXoBjvwUorL93ht+jm8SdjltlirOEM3LtFtI+wXTlQgmA3ol9nmAmnvmKLvSkIqO88NbV+KELbvbVMz07DKytrfL6zl1jiNUKcPklJuMUgrlco+O5AJHPO/8IJR3s6cfeXaMF0HLC4ngE8AAaPG3vTLWDamfEJxOh5R+jCjMMCPZFxEECkiYMB19CfxrRApomLShqVLCKHU42eCRSDL/wOM/8B2AJhnV0AJm75PH25YXuUkVwvLJ9W3LMTif7X+LCNKzoUjLqGTukc6cGkiZLURTQCBX6QT4idA8KrteJywnbEhkI0/WvRZy2TSMT6/nuJ7S4Du3dwqgpWHCmDzIOKEozHxzJn3b4Ut7pUmz49fXF0N7L5YrNs5ZCWRNyVPQ7vmu4tkc+/7x";
+
 export default function SubscriptionPage() {
   const { ready, authenticated, user, login } = usePrivy();
-  const router = useRouter();
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paymentUrl, setPaymentUrl] = useState<string>("");
 
   useEffect(() => {
     if (ready && !authenticated) {
@@ -30,7 +31,6 @@ export default function SubscriptionPage() {
   useEffect(() => {
     if (ready && authenticated && user) {
       fetchSubscription();
-      generatePaymentUrl();
     }
   }, [ready, authenticated, user]);
 
@@ -45,18 +45,6 @@ export default function SubscriptionPage() {
       console.error("Failed to fetch subscription:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const generatePaymentUrl = async () => {
-    try {
-      const res = await fetch("/api/payment-url");
-      if (res.ok) {
-        const data = await res.json();
-        setPaymentUrl(data.url);
-      }
-    } catch (error) {
-      console.error("Failed to generate payment URL:", error);
     }
   };
 
@@ -76,7 +64,12 @@ export default function SubscriptionPage() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold">Subscription</h1>
+          <div className="flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-3">
+              <Image src="/logo.png" alt="Too Long Bro" width={40} height={40} />
+              <h1 className="text-2xl font-bold">Subscription</h1>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -86,7 +79,7 @@ export default function SubscriptionPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Active Subscription</CardTitle>
-                <Badge variant="default">Active</Badge>
+                <Badge variant="default" className="bg-green-500">Active</Badge>
               </div>
               <CardDescription>
                 You have an active monthly subscription
@@ -104,7 +97,7 @@ export default function SubscriptionPage() {
                   <p className="text-lg font-semibold">
                     {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
                   </p>
-                  <p className="text-xs text-muted-foreground">Renews monthly at $0.99</p>
+                  <p className="text-xs text-muted-foreground">Renews monthly at $2.99</p>
                 </div>
               </div>
 
@@ -126,12 +119,12 @@ export default function SubscriptionPage() {
               <CardHeader>
                 <CardTitle>Monthly Subscription</CardTitle>
                 <CardDescription>
-                  Get access to unlimited AI-powered document summarization
+                  Get access to AI-powered document summarization
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="text-center py-6">
-                  <div className="text-5xl font-bold">$0.99</div>
+                  <div className="text-5xl font-bold">$2.99</div>
                   <div className="text-muted-foreground">per month</div>
                 </div>
 
@@ -165,26 +158,25 @@ export default function SubscriptionPage() {
                   </ul>
                 </div>
 
-                <div className="pt-4">
-                  {paymentUrl ? (
-                    <a
-                      href={paymentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full"
-                    >
-                      <Button size="lg" className="w-full">
-                        Subscribe with Crypto (CoinPayments)
-                      </Button>
-                    </a>
-                  ) : (
-                    <Button size="lg" className="w-full" disabled>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Loading Payment...
-                    </Button>
-                  )}
-                  <p className="text-xs text-center text-muted-foreground mt-2">
-                    Secure payment via CoinPayments • Accepts Bitcoin, Ethereum, and 100+ cryptocurrencies
+                <div className="pt-4 flex flex-col items-center">
+                  {/* CoinPayments Button Form */}
+                  <form
+                    action="https://a-api.coinpayments.net/api/v1/invoices/button"
+                    method="post"
+                    className="w-full flex justify-center"
+                  >
+                    <input type="hidden" name="action" value="checkout" />
+                    <input type="hidden" name="data" value={COINPAYMENTS_BUTTON_DATA} />
+                    <input
+                      type="image"
+                      src="https://a-api.coinpayments.net/checkout_buttons/pay_black_small.svg"
+                      name="submit"
+                      style={{ width: "252px", cursor: "pointer" }}
+                      alt="Pay with CoinPayments"
+                    />
+                  </form>
+                  <p className="text-xs text-center text-muted-foreground mt-4">
+                    Secure payment via CoinPayments • Accepts Bitcoin, Ethereum, USDT, and 100+ cryptocurrencies
                   </p>
                 </div>
               </CardContent>
@@ -197,7 +189,7 @@ export default function SubscriptionPage() {
               <CardContent>
                 <ol className="space-y-3 text-sm">
                   <li>
-                    <strong>1. Subscribe:</strong> Click the button above to pay $0.99 with cryptocurrency
+                    <strong>1. Subscribe:</strong> Click the button above to pay $2.99 with cryptocurrency
                   </li>
                   <li>
                     <strong>2. Get Access:</strong> Once payment confirms, you'll get 10 file summaries
@@ -206,7 +198,7 @@ export default function SubscriptionPage() {
                     <strong>3. Use Service:</strong> Upload and summarize up to 10 documents per month
                   </li>
                   <li>
-                    <strong>4. Auto-Renewal:</strong> Your subscription renews automatically each month
+                    <strong>4. Renew:</strong> Come back to renew your subscription each month
                   </li>
                 </ol>
               </CardContent>
@@ -214,6 +206,14 @@ export default function SubscriptionPage() {
           </div>
         )}
       </main>
+
+      <footer className="border-t bg-card mt-8">
+        <div className="container mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
+          <Link href="/" className="text-primary hover:underline">
+            ← Back to Home
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }
